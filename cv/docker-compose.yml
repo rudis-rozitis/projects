@@ -1,0 +1,67 @@
+services:
+  webapp:
+    container_name: webapp
+    build: ./webapp
+    labels:
+      - "traefik.http.routers.webapp.rule=Host(`cv.localhost`)"
+    networks:
+      - cv_network
+
+  traefik:
+    container_name: traefik
+    image: traefik:latest
+    command:
+      - "--api.insecure=true"
+      - "--providers.docker=true"
+      - "--entrypoints.web.address=:90"
+      - "--metrics.prometheus=true"
+      - "--metrics.prometheus.buckets=0.1,0.3,1.2,5.0"
+      - "--entrypoints.metrics.address=:9100"
+      - "--metrics.prometheus.entryPoint=metrics"
+    ports:
+      - "90:90"
+      - "8080:8080"
+      - "9100:9100"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - cv_network
+
+  prometheus:
+    image: prom/prometheus
+    container_name: prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+    ports:
+      - 9090:9090
+    restart: unless-stopped
+    volumes:
+      - ./prometheus:/etc/prometheus
+      - prom_data:/prometheus
+    labels:
+      - "traefik.http.routers.prometheus.rule=Host(`prometheus.localhost`)"
+    networks:
+      - cv_network
+  
+  grafana:
+    image: grafana/grafana
+    container_name: grafana
+    ports:
+      - 3001:3000
+    restart: unless-stopped
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=grafana
+    volumes:
+      - ./grafana:/etc/grafana/provisioning/datasources
+    labels:
+      - "traefik.http.routers.grafana.rule=Host(`grafana.localhost`)"
+    networks:
+      - cv_network
+
+volumes:
+  prom_data:
+
+networks:
+  cv_network:
+    driver: bridge
