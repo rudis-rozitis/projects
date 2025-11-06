@@ -1,12 +1,12 @@
 #from typing import Union
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from models.task import Task
-import sqlite3
+import db
+from fastapi.encoders import jsonable_encoder
+from fastapi.responses import JSONResponse
 
 app = FastAPI()
-
-sqliteConnection = sqlite3.connect('task_db.db')
 
 @app.get("/")
 def read_root():
@@ -14,34 +14,39 @@ def read_root():
 
 
 @app.post("/task")
-def read_item(task: Task):
-    #TODO: implement litesql database insert here
-    #Returns created task with an ID
-    return { "id": 1, "title": "Task Title", "description": "Task Description", "status": "pending" }
+def insert_item(task: Task):
+    return db.insert_task(task)
 
 @app.get("/tasks")
 def get_all_tasks():
-    #TODO: implement litesql database fetch all here
-    #Responds with JSON array of task objects
-    all_tasks = []
-    return all_tasks
+    json_compatible_item_data = jsonable_encoder(db.get_all_tasks())
+    return JSONResponse(content=json_compatible_item_data)
 
 @app.get("/tasks/{task_id}")
 def get_task(task_id: int):
-    #TODO: implement litesql database fetch a task here
-    #TODO: return 404 if task not found
-    #Returns JSON object of the task
-    return {"Here": "be task details"}
+    task = db.get_task_by_id(task_id)
+    if task is None:
+        raise HTTPException(status_code=404, detail="Item not found")
+    else:
+        json_compatible_item_data = jsonable_encoder(task)
+        return JSONResponse(content=json_compatible_item_data)
 
 @app.put("/tasks")
 def update_task(task: Task):
-    #TODO: implement litesql database fetch a task here
-    #TODO: return 404 if task not found
-    #Returns JSON object of updated task
-    return {"Here": "be task details"}
+    task = db.update_task_by_id(task)
+    if task is None:
+        raise HTTPException(status_code=404, detail="Item not found")
+    else:
+        json_compatible_item_data = jsonable_encoder(task)
+        return JSONResponse(content=json_compatible_item_data)
 
 @app.delete("/tasks/{task_id}")
 def delete_task(task_id: int):
-    #TODO: implement litesql database delete a task here
-    #Returns a status code
+    db.delete_task_by_id(task_id)
+    return 200
+
+@app.post("/populate_tasks")
+def populate_tasks():
+    db.populate_tasks()
+
     return 200
