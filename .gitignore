@@ -1,4 +1,7 @@
-# Ignore Python cache and virtualenv for the task_manager project
-task_manager/__pycache__/
-task_manager/venv/
+# Ignore Python cache and virtualenvs anywhere in the repo
+__pycache__/
+venv/
+.venv/
+
+# Keep the task_manager DB ignored
 task_manager/task_db.db
