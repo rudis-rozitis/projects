@@ -1,75 +1,38 @@
 #from typing import Union
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request, Response, Form
 from models.task import Task
 import db
 from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse, HTMLResponse
+from fastapi.staticfiles import StaticFiles
+from fastapi.templating import Jinja2Templates
 
 app = FastAPI()
+app.mount("/static", StaticFiles(directory="static"), name="static")
+templates = Jinja2Templates(directory="templates")
 
 @app.get("/")
-def read_root():
-    return HTMLResponse("""
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <link rel="stylesheet" href="/style.css">
-  <title>Task Manager</title>
-</head>
-<body>
-  <h1>TASK MANAGER</h1>
-
-    <form class="input-area">
-      <input type="text" placeholder="Input a task.." />
-      <button type="submit">ADD</button>
-    </form>
-
-    <div class="task-list">
-
-      <div class="task">
-        <div class="task-info">
-          <span class="date">Created: MM-DD-YYYY</span>
-          <span>Task1</span>
-        </div>
-        <button>Done</button>
-      </div>
-
-      <div class="task">
-        <div class="task-info">
-          <span class="date">Created: MM-DD-YYYY</span>
-          <span>Task2</span>
-        </div>
-        <button>Done</button>
-      </div>
-
-      <div class="task">
-        <div class="task-info">
-          <span class="date">Created: MM-DD-YYYY</span>
-          <span>Task3</span>
-        </div>
-        <button>Done</button>
-      </div>
-
-      <div class="task">
-        <div class="task-info">
-          <span class="date">Created: MM-DD-YYYY</span>
-          <span>Task4</span>
-        </div>
-        <button>Done</button>
-      </div>
-
-    </div>
-</body>
-</html>
-""")
-
+def read_root(request: Request):
+    tasks = db.get_all_tasks()
+    return templates.TemplateResponse(name="index.html", request=request, context={"tasks": tasks["tasks"]})
 
 @app.post("/task")
-def insert_item(task: Task):
-    return db.insert_task(task)
+def insert_item(task: str = Form(...)):
+    print(task)
+    inserted_item = db.insert_task(task)
+    html_response = f"""
+    <li id="task-{inserted_item['id']}">
+      <div class="task">
+        <div class="task-info">
+          <span class="date">Task ID: {inserted_item['id']} </span>
+          <span>{inserted_item['title']}</span>
+        </div>
+        <button  hx-target="closest ul" hx-swap="innerHTML" hx-delete="/tasks/{inserted_item['id']}">Done</button>
+      </div>
+    </li>
+    """
+    return HTMLResponse(content=html_response)
 
 @app.get("/tasks")
 def get_all_tasks():
@@ -96,11 +59,27 @@ def update_task(task: Task):
 
 @app.delete("/tasks/{task_id}")
 def delete_task(task_id: int):
+    task = db.get_task_by_id(task_id)
+    if task is None:
+        raise HTTPException(status_code=404, detail="Item not found")
+    
     db.delete_task_by_id(task_id)
-    return 200
+    html_response = ""
+    for task in db.get_all_tasks()["tasks"]:
+      html_response += f"""
+      <li id="task-{task['id']}" >
+        <div class="task">
+          <div class="task-info">
+            <span class="date">Task ID: {task['id']} </span>
+            <span>{task['title']}</span>
+          </div>
+          <button hx-target="closest ul" hx-swap="innerHTML" hx-delete="/tasks/{task['id']}">Done</button>
+        </div>
+      </li>
+      """
+    return HTMLResponse(content=html_response)
 
 @app.post("/populate_tasks")
 def populate_tasks():
     db.populate_tasks()
-
     return 200

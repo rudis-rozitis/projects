@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <script src="https://cdn.jsdelivr.net/npm/htmx.org@2.0.8/dist/htmx.min.js" integrity="sha384-/TgkGk7p307TH7EXJDuUlgG3Ce1UVolAOFopFekQkkXihi5u/6OCvVKyz1W+idaz" crossorigin="anonymous"></script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="stylesheet" href="static/style.css">
+  <title>Task Manager</title>
+</head>
+<body>
+  <h1>TASK MANAGER</h1>
+
+    <form class="input-area">
+      <input id="task-input-box" type="text" placeholder="Input a task.." name="task"/>
+      <button id="task-input-button" type="submit" hx-post="/task" hx-target="#todo-list" hx-swap="beforeend">ADD</button>
+    </form>
+    <script>
+        document.getElementById('task-input-button').addEventListener('htmx:afterRequest', function() {
+          document.getElementById('task-input-box').value = '';
+      });
+  </script>
+
+    <div class="task-list">
+<ul id="todo-list">
+  {% for task in tasks %}
+    <li id="task-{{ task.id }}"  >
+      <div class="task">
+        <div class="task-info" >
+          <span class="date">Task ID: {{ task.id }} </span>
+          <span>{{ task.title }}</span>
+        </div>
+        <button hx-target="closest ul" hx-swap="innerHTML" hx-delete="/tasks/{{ task.id }}">Done</button>
+      </div>
+    </li>
+    {% endfor %}
+    </ul>
+    </div>
+</body>
+</html>

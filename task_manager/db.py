@@ -46,7 +46,7 @@ def get_all_tasks():
     tasks = [{"id": record[0], "title": record[1], "description": record[2]} for record in records]
     return {"tasks": tasks}
 
-def insert_task(task: Task):
+def insert_task(task: str):
     """
     Insert a new task into the database.
     Args:
@@ -56,11 +56,11 @@ def insert_task(task: Task):
     """
     with get_db_connection() as conn:
         cursor = conn.cursor()
-        cursor.execute(INSERT_TASK_QUERY, (task.title, task.description))
+        cursor.execute(INSERT_TASK_QUERY, (task, "Placeholder description"))
         task_id = cursor.lastrowid
         conn.commit()
         cursor.close()
-    return {"id": task_id, "title": task.title, "description": task.description}
+    return {"id": task_id, "title": task, "description": "Placeholder description"}
 
 def get_task_by_id(task_id: int):
     """
